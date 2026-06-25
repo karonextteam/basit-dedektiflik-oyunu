@@ -1,0 +1,211 @@
+@startuml Criminal Case - Class Diagram
+
+!theme plain
+skinparam backgroundColor #FEFEFE
+
+'title Criminal Case: İstanbul Dosyaları - Class Diagram
+
+' ================= ENUMS & DATA =================
+
+class "Renk Paleti" as Colors <<constants>> {
+  + BG: String = "#0a0f1e"
+  + PANEL: String = "#0d1526"
+  + CARD: String = "#162035"
+  + GOLD: String = "#f59e0b"
+  + BLUE: String = "#3b82f6"
+  + RED: String = "#ef4444"
+  + GREEN: String = "#22c55e"
+  + CYAN: String = "#06b6d4"
+  --
+  UI renk sabitleri
+}
+
+class "BOLUMLER" as Data <<data>> {
+  + Array<Bolum>
+  --
+  + num: Integer
+  + title: String
+  + location: String
+  + hikaye: String
+  + supheliler: Array<Suspect>
+  + tum_deliller: Array<String>
+  + suclu_deliller: Array<String>
+  + min_delil: Integer
+}
+
+' ================= MAIN GAME CLASS =================
+
+class "CriminalCaseOyunu" as Game <<main>> {
+  - kok: Tk
+  - ana_cerceve: Frame
+  --
+  # bolum_idx: Integer
+  # envanter: Array<String>
+  # analiz_edilenler: Array<String>
+  # skor: Integer
+  # toplam_skor: Integer
+  # bolum_yildizlari: Array<Integer>
+  # lab_mesgul: Boolean
+  --
+  # skor_etiketi: Label
+  # delil_sayisi_etiketi: Label
+  # bilgi_etiketi: Label
+  # envanter_listesi: Listbox
+  # analiz_etiketi: Label
+  # sahne_canvas: Canvas
+  --
+  + __init__(kok: Tk)
+  + goster_baslik()
+  + goster_bolum_giris()
+  + goster_sorusturma()
+  + goster_oyun_sonu()
+  + sonraki_bolum()
+  + yeniden_baslat()
+  --
+  + olay_yeri_incele()
+  + lab_ac()
+  + sucla(supheli_isim: String)
+  + karar_ver(supheli: Suspect)
+  + notlari_kaydet()
+  --
+  + skor_guncelle(artis: Integer)
+  + analiz_guncelle()
+}
+
+' ================= SCREEN CLASSES =================
+
+class "BaslikEkrani" as TitleScreen <<UI>> {
+  - oyun: CriminalCaseOyunu
+  --
+  + __init__(oyun)
+  - _olustur()
+  - _goster_skorlar()
+}
+
+class "BolumGirisEkrani" as ChapterScreen <<UI>> {
+  - oyun: CriminalCaseOyunu
+  - bolum: Bolum
+  --
+  + __init__(oyun)
+  - _olustur()
+}
+
+class "SorusturmaEkrani" as InvestigationScreen <<UI>> {
+  - oyun: CriminalCaseOyunu
+  - bolum: Bolum
+  --
+  + __init__(oyun)
+  - _olustur()
+}
+
+class "LaboratuvarPenceresi" as LabWindow <<UI>> {
+  - oyun: CriminalCaseOyunu
+  - delil: String
+  - pencere: Toplevel
+  --
+  + __init__(oyun, delil)
+  - _olustur()
+  - _analiz_yap()
+  - _sonuc_belirle(): (String, Color)
+}
+
+class "SuclamaPopup" as AccusePopup <<UI>> {
+  - oyun: CriminalCaseOyunu
+  - supheli: Suspect
+  --
+  + __init__(oyun, supheli_isim)
+  - _olustur()
+}
+
+class "KararEkrani" as VerdictScreen <<UI>> {
+  - oyun: CriminalCaseOyunu
+  - supheli: Suspect
+  - dogru: Boolean
+  - yildizlar: Integer
+  --
+  + __init__(oyun, supheli, dogru, yildizlar)
+  - _olustur()
+}
+
+class "OyunSonuEkrani" as EndScreen <<UI>> {
+  - oyun: CriminalCaseOyunu
+  --
+  + __init__(oyun)
+  - _olustur()
+}
+
+' ================= UTILITY CLASSES =================
+
+class "sahneler" as Scenes <<utility>> {
+  + ciz_sahne(canvas, sahne_turu)
+  - _ciz_muze(canvas, w, h)
+  - _ciz_liman(canvas, w, h)
+  - _ciz_orman(canvas, w, h)
+}
+
+class "kaydet" as SaveUtil <<utility>> {
+  + dosya_kaydet(oyun): String
+}
+
+' ================= RELATIONSHIPS =================
+
+Game ..> Colors : uses
+Game ..> Data : uses
+
+' Screen creation
+Game ..> TitleScreen : creates >
+Game ..> ChapterScreen : creates >
+Game ..> InvestigationScreen : creates >
+Game ..> LabWindow : creates >
+Game ..> AccusePopup : creates >
+Game ..> VerdictScreen : creates >
+Game ..> EndScreen : creates >
+Game ..> Scenes : uses
+Game ..> SaveUtil : uses
+
+' Composition relationships
+TitleScreen "1" *-- "1" Game : has >
+ChapterScreen "1" *-- "1" Game : has >
+InvestigationScreen "1" *-- "1" Game : has >
+LabWindow "1" *-- "1" Game : has >
+AccusePopup "1" *-- "1" Game : has >
+VerdictScreen "1" *-- "1" Game : has >
+EndScreen "1" *-- "1" Game : has >
+
+note right of Game
+  **Ana Oyun Sınıfı**
+  
+  Tüm oyun durumunu (state) 
+  tutar ve ekranlar arası
+  navigasyonu yönetir.
+  
+  MVC Pattern: Controller
+end note
+
+note right of InvestigationScreen
+  **Ana Oyun Ekranı**
+  
+  - Şüpheli paneli (sol)
+  - Olay yeri canvas (orta)
+  - Envanter listesi (sağ)
+end note
+
+note bottom of LabWindow
+  **Laboratuvar Analizi**
+  
+  Threading kullanarak
+  progress bar animasyonu
+  çalıştırır. Analiz sonucunda
+  delilin sahibini bulur.
+end note
+
+note bottom of Game
+  **Kalıtım Hiyerarşisi Yok**
+  
+  Tkinter Frame/Canvas
+  bileşenleri kompozisyon ile
+  kullanılır. Her ekran kendi
+  UI'sini oluşturur.
+end note
+
+@enduml
